@@ -38,6 +38,9 @@ The above Node-RED Flow, turns on my 'Outside Office' light when the powder room
       * [April 15, 2025 - Version 0.3.0](#april-15-2025---version-030)
          * [Breaking Change](#breaking-change)
          * [Fixes](#fixes)
+      * [Jan 15, 2026 - Version 0.3.3](#jan-15-2026---version-033)
+         * [Breaking Change](#breaking-change-1)
+         * [Fixes](#fixes-1)
 * [Backlog / Roadmap](#backlog--roadmap)
    * [Dropped items](#dropped-items)
 * [Installation Steps](#installation-steps)
@@ -201,6 +204,16 @@ With a plugin, you can see if it supports Real Time events, by opening the Home 
 - HB-Control Node Turns Off then On when this message is received #152
 - Added `Debug logging` configuration option that creates a file `homebridge-automation-endpoints.json`, which contains all the homebridge devices discovered.  It can be used as part of troubleshooting device issues.
 - Fix for some camara devices not outputing events
+
+### Jan 15, 2026 - Version 0.3.3
+
+#### Breaking Change
+
+- An early change broke the behaviour of the status node, and it emits all events, and not just on request.  Original behaviour has been restored.  If you require all events, use the event node.
+
+#### Fixes
+
+- Fix for #195 - Status node sends messages on device state change without input trigger
 
 # Backlog / Roadmap
 
