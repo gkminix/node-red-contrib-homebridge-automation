@@ -66,12 +66,18 @@ class HBConfigNode {
     }
     // Fix broken uniqueId's from HAP-Client
     updatedDevices.forEach((service) => {
-      const friendlyName = (service.accessoryInformation.Name ? service.accessoryInformation.Name : service.serviceName);
+      const friendlyName = (service.values.ConfiguredName
+				? service.values.ConfiguredName
+				: (!service.accessoryInformation.Name
+					? service.serviceName
+					: (service.serviceLabelIndex
+						? `${service.accessoryInformation.Name}${service.values.ServiceLabelIndex}`
+						: service.accessoryInformation.Name)));
       service.uniqueId = `${service.instance.name}${service.instance.username}${service.accessoryInformation.Manufacturer}${friendlyName}${service.uuid.slice(0, 8)}`;
     });
     updatedDevices.forEach((updatedService, index) => {
       if (this.hbDevices.find(service => service.uniqueId === updatedService.uniqueId)) {
-        // debug(`Exsiting UniqueID breakdown - ${updatedService.serviceName}-${updatedService.instance.username}-${updatedService.aid}-${updatedService.iid}-${updatedService.type}`);
+        // debug(`Existing UniqueID breakdown - ${updatedService.serviceName}-${updatedService.instance.username}-${updatedService.aid}-${updatedService.iid}-${updatedService.type}`);
         const update = this.hbDevices.find(service => service.uniqueId === updatedService.uniqueId);
         update.instance = updatedService.instance;
       } else {
@@ -97,15 +103,25 @@ class HBConfigNode {
     ]);
     return filterUnique(this.hbDevices)
       .filter(service => supportedTypes.has(service.humanType))
-      .map(service => ({
-        name: (service.accessoryInformation.Name ? service.accessoryInformation.Name : service.serviceName),
-        fullName: `${(service.accessoryInformation.Name ? service.accessoryInformation.Name : service.serviceName)} - ${service.humanType}`,
-        sortName: `${(service.accessoryInformation.Name ? service.accessoryInformation.Name : service.serviceName)}:${service.type}`,
-        uniqueId: service.uniqueId,
-        homebridge: service.instance.name,
-        service: service.type,
-        manufacturer: service.accessoryInformation.Manufacturer,
-      }))
+      .map(service => {
+        const friendlyName = (service.values.ConfiguredName
+				? service.values.ConfiguredName
+				: (!service.accessoryInformation.Name
+					? service.serviceName
+					: (service.serviceLabelIndex
+						? `${service.accessoryInformation.Name}${service.values.ServiceLabelIndex}`
+						: service.accessoryInformation.Name)));
+        const newval = {
+          name: friendlyName,
+          fullName: `${friendlyName} - ${service.humanType}`,
+          sortName: `${friendlyName}:${service.type}`,
+          uniqueId: service.uniqueId,
+          homebridge: service.instance.name,
+          service: service.type,
+          manufacturer: service.accessoryInformation.Manufacturer
+        };
+        return newval;
+      })
       .sort((a, b) => a.sortName.localeCompare(b.sortName));
   }
 
@@ -140,7 +156,13 @@ class HBConfigNode {
     for (const [key, clientNode] of Object.entries(this.clientNodes)) {
       // debug('_Register: %s type: "%s" "%s" "%s"', clientNode.type, clientNode.name, clientNode.instance, clientNode.device);
       const matchedDevice = this.hbDevices.find(service => {
-        const friendlyName = (service.accessoryInformation.Name ? service.accessoryInformation.Name : service.serviceName);
+        const friendlyName = (service.values.ConfiguredName
+				? service.values.ConfiguredName
+				: (!service.accessoryInformation.Name
+					? service.serviceName
+					: (service.serviceLabelIndex
+						? `${service.accessoryInformation.Name}${service.values.ServiceLabelIndex}`
+						: service.accessoryInformation.Name)));
         const deviceIdentifier = `${service.instance.name}${service.instance.username}${service.accessoryInformation.Manufacturer}${friendlyName}${service.uuid.slice(0, 8)}`;
         return clientNode.device === deviceIdentifier;
       });
@@ -174,8 +196,15 @@ class HBConfigNode {
       this.monitor = await this.hapClient.monitorCharacteristics(monitorNodes);
       this.monitor.on('service-update', (services) => {
         services.forEach(service => {
+          const friendlyName = (service.values.ConfiguredName
+				? service.values.ConfiguredName
+				: (!service.accessoryInformation.Name
+					? service.serviceName
+					: (service.serviceLabelIndex
+						? `${service.accessoryInformation.Name}${service.values.ServiceLabelIndex}`
+						: service.accessoryInformation.Name)));
           const eventNodes = Object.values(this.clientNodes).filter(clientNode => {
-            const deviceIdentifier = `${service.instance.name}${service.instance.username}${service.accessoryInformation.Manufacturer}${(service.accessoryInformation.Name ? service.accessoryInformation.Name : service.serviceName)}${service.uuid.slice(0, 8)}`;
+            const deviceIdentifier = `${service.instance.name}${service.instance.username}${service.accessoryInformation.Manufacturer}${friendlyName}${service.uuid.slice(0, 8)}`;
             // debug('service-update: compare', clientNode.config.device, deviceIdentifier);
             return clientNode.config.device === deviceIdentifier;
           }
